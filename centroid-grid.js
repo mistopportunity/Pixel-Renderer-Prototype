@@ -11,7 +11,7 @@ function createGrid(dimension1,dimension2) {
     return dimension1Array;   
 }
 
-function centroidGrid(width,height,isLandscape) {
+function centroidGrid(width,height,isLandscape,data) {
     this.width = width;
     this.height = height;
 
@@ -22,9 +22,13 @@ function centroidGrid(width,height,isLandscape) {
         return this.renderingInLandscape ? [y,x] : [x,y];
     };
 
-    this.data = (matrix => {
-        return createGrid(matrix[0],matrix[1]);
-    })(this.dataAccessorMatrix(width,height));
+    if(!data) {
+        this.data = (matrix => {
+            return createGrid(matrix[0],matrix[1]);
+        })(this.dataAccessorMatrix(width,height));
+    } else {
+        this.data = data;
+    }
 
     this.refoldTimeout;
     this.refoldDelay = 300;
@@ -46,7 +50,6 @@ function centroidGrid(width,height,isLandscape) {
         console.log("Refolded data into landscape mode");
     };
     this.forcePortrait = () => {
-
 
         const newGrid = createGrid(this.height,this.width);
 
@@ -90,12 +93,12 @@ function centroidGrid(width,height,isLandscape) {
     //Only use these gets and sets outside of this context. There are far to slow. Their intent is data manipulation.
     this.get = (x,y) => {
         const matrix = this.dataAccessorMatrix(x,y);
-        return this.data[matrix[0],matrix[1]];
+        return this.data[matrix[0]][matrix[1]];
     };
 
     this.set = (x,y,value) => {
         const matrix = this.dataAccessorMatrix(x,y);
-        return this.data[matrix[0],matrix[1]] = value;
+        this.data[matrix[0]][matrix[1]] = value;
     }
 
     this.camera = new camera3d(
@@ -122,8 +125,9 @@ function centroidGrid(width,height,isLandscape) {
         const x = Math.floor(xOffset);
         const y = Math.floor(yOffset);
 
-        xOffset = xOffset - x - 0.5;
-        yOffset = yOffset - y - 0.5;
+
+        xOffset = (1-(xOffset - x)) - 0.5;
+        yOffset = (1-(yOffset - y)) - 0.5;
 
         let horizontalPixels = Math.floor(width / scale);
         let verticalPixels = Math.floor(height / scale);
@@ -145,8 +149,8 @@ function centroidGrid(width,height,isLandscape) {
 
         const endRow = dataEndY + 2;
         const endColumn = dataEndX + 2;
-        const startRow = dataStartY - 1;
-        const startColumn = dataStartX - 1;
+        const startRow = dataStartY - 2;
+        const startColumn = dataStartX - 2;
 
         if(horizontalPixels % 2 !== 0) {
             centerXOffset += scale / 2;
@@ -156,44 +160,50 @@ function centroidGrid(width,height,isLandscape) {
         }
 
         
-        let verticalScaleAdjust = 0;
-        let horizontalScaleAdjust = 0;
+        let verticalScale = scale;
+        let horizontalScale = scale;
 
-        const dataBinderX = dataStartX + xOffset;
-        const dataBinderY = dataStartY + yOffset;
-
-        let scaledDataBinder = dataBinderX * scale;
-
+        let scaledDataBinder = dataStartX + xOffset;
         if(Math.floor(scaledDataBinder) - scaledDataBinder !== 0) {
-            horizontalScaleAdjust++;
+            verticalScale++;
+            horizontalScale++;
+        } else {
+            scaledDataBinder = dataStartY + yOffset;
+            if(Math.floor(scaledDataBinder) - scaledDataBinder !== 0) {
+                verticalScale++;
+                horizontalScale++;
+            }
         }
 
-        scaledDataBinder = dataBinderY * scale;
 
-        if(Math.floor(scaledDataBinder) - scaledDataBinder !== 0) {
-            verticalScaleAdjust++;
-        }       
+        const pointerX = this.pointerPositionX;
+        const pointerY = this.pointerPositionY;
+        let pointerRegister = (pointerX < 0 || pointerY < 0 || pointerX > width || pointerY > height) ? null : -1
 
-        const innerDrawLogic = function(rowIndex,columnIndex,value) {
+        const innerDrawLogic = function(rowIndex,columnIndex,color) {
 
-            if(columnIndex === 0 && rowIndex === 0) {
-                context.fillStyle = "Yellow";
-            } else {
-                context.fillStyle = "Red";
+            context.fillStyle = color;
+
+            const posX = ((columnIndex - dataStartX + xOffset) * scale) + centerXOffset;
+            const posY = ((rowIndex - dataStartY + yOffset) * scale) + centerYOffset;
+
+            if(pointerRegister === -1) {
+                const meetsX = pointerX >= posX && pointerX <= posX + scale
+                if(meetsX) {
+                const meetsY = pointerY >= posY && pointerY <= posY + scale;
+                if(meetsY) {
+                    pointerRegister = {
+                        x: columnIndex,
+                        y: rowIndex
+                    }
+                }}
             }
-
-            
-            let posX = (columnIndex - dataStartX + xOffset) * scale;
-            let posY = (rowIndex - dataStartY + yOffset) * scale;
-
-            posX += centerXOffset;
-            posY += centerYOffset;
 
             context.fillRect(
                 posX,
                 posY,
-                scale + horizontalScaleAdjust,
-                scale + verticalScaleAdjust
+                horizontalScale,
+                verticalScale
             );
         }
 
@@ -206,9 +216,8 @@ function centroidGrid(width,height,isLandscape) {
                     const horizontalUpperbound = row.length;
                     for(let columnIndex = startColumn;columnIndex < endColumn;columnIndex++) { 
                         if(columnIndex > - 1 && columnIndex < horizontalUpperbound) {
-                            const value = row[columnIndex];
-                            innerDrawLogic(rowIndex,columnIndex,value);
-
+                            const color = this.colorForValue(row[columnIndex]);
+                            innerDrawLogic(rowIndex,columnIndex,color);
                         }
 
                     }
@@ -227,20 +236,36 @@ function centroidGrid(width,height,isLandscape) {
                     const verticalUpperbound = column.length;
                     for(let rowIndex = startRow;rowIndex < endRow;rowIndex++) {
                         if(rowIndex > -1 && rowIndex < verticalUpperbound) {
-                            const value = column[rowIndex];
-                            innerDrawLogic(rowIndex,columnIndex,value);
-
+                            const color = this.colorForValue(column[rowIndex]);
+                            innerDrawLogic(rowIndex,columnIndex,color);
                         }
                     }
                 }
             }
         }
 
+        context.fillStyle = "White";
 
-        context.fillStyle = "Black";
         context.fillRect(width/2-scale/4,height/2-scale/4,scale/2,scale/2);
 
+        this.pointerRegister = pointerRegister === -1 ? null : pointerRegister;
+
     };
+
+
+    this.colorForValue = value => {
+        if(!value) {
+            return "Black";
+        } else {
+            return "Gray";
+        }
+    };
+
+    this.pointerPositionX = 0;
+    this.pointerPositionY = 0;
+
+    this.pointerRegister = null;
+
     
     console.log(`Data starting in ${isLandscape ? "landscape" : "portrait"} mode`);
 }
