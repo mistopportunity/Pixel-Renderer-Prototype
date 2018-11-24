@@ -5,6 +5,18 @@ const grid = new centroidGrid(2000,2000,canvas.width>=canvas.height);
 let lastDrawPosition = null;
 let mouseDown = false;
 
+const gradualCameraShiftAmount = 0.2;
+
+const maxGamepadCameraShift = 0.32;
+const gamepadDeadzone = 0.2;
+
+const deadzoneNormalizer = 1 / (1 - gamepadDeadzone);
+const inverseZoomFactor = 50;
+
+
+
+const keyPool = {};
+
 function bline(dx,dy,x0, y0, x1, y1) {
     //http://rosettacode.org/wiki/Bitmap/Bresenham%27s_line_algorithm#JavaScript
     var sx = x0 < x1 ? 1 : -1;
@@ -93,15 +105,6 @@ canvas.addEventListener("wheel",event => {
     }
 });
 
-const keyPool = {};
-const gradualCameraShiftAmount = 0.2;
-
-const maxGamepadCameraShift = 0.32;
-const gamepadDeadzone = 0.2;
-
-const deadzoneNormalizer = 1 / (1 - gamepadDeadzone);
-const inverseZoomFactor = 50;
-
 window.addEventListener("keydown",event => {
     const key = event.key.toLowerCase();
     if(!keyPool[key]) {
@@ -188,7 +191,7 @@ rendererState = (context,width,height,timestamp) => {
 
         const leftTrigger = gamepad.buttons[7];
 
-        if(leftTrigger.pressed) {
+        if(leftTrigger.pressed || gamepad.buttons[0].pressed) {
             grid.set(Math.round(grid.camera.x-1),Math.round(grid.camera.y-1),1);
         }
 
@@ -236,8 +239,6 @@ rendererState = (context,width,height,timestamp) => {
         let leftYAxis = applyDeadZone(gamepad.axes[1]);
         //let rightXAxis = applyDeadZone(gamepad.axes[2]);
         let rightYAxis = applyDeadZone(-gamepad.axes[3]);
-
-        let moved = false;
 
 
         if(leftXAxis !== 0) {
