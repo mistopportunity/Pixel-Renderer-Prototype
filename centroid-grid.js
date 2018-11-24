@@ -188,9 +188,9 @@ function centroidGrid(width,height,isLandscape,data) {
             const posY = ((rowIndex - dataStartY + yOffset) * scale) + centerYOffset;
 
             if(hitDetectionRegister === -1) {
-                const meetsX = hitDetectionX >= posX && hitDetectionX <= posX + scale
+                const meetsX = hitDetectionX >= posX && hitDetectionX <= posX + horizontalScale;
                 if(meetsX) {
-                const meetsY = hitDetectionY >= posY && hitDetectionY <= posY + scale;
+                const meetsY = hitDetectionY >= posY && hitDetectionY <= posY + verticalScale;
                 if(meetsY) {
                     hitDetectionRegister = {
                         x: columnIndex,
@@ -261,8 +261,8 @@ function centroidGrid(width,height,isLandscape,data) {
         }
     };
 
-    this.hitDetectionX = 0;
-    this.hitDetectionY = 0;
+    this.hitDetectionX = -1;
+    this.hitDetectionY = -1;
 
     this.hitDetectionRegister = null;
 

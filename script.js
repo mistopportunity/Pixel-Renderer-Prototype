@@ -6,16 +6,14 @@ let lastDrawPosition = null;
 let mouseDown = false;
 
 const gradualCameraShiftAmount = 0.22;
-
 const maxGamepadCameraShift = 0.32;
 const gamepadDeadzone = 0.2;
-
 const deadzoneNormalizer = 1 / (1 - gamepadDeadzone);
+
 const inverseZoomFactor = 50;
 
-
-
-const keyPool = {};
+const touchInverseZoomFactor = 30;
+const touchMaxShiftAmount = 0.4;
 
 function bline(dx,dy,x0, y0, x1, y1) {
     //http://rosettacode.org/wiki/Bitmap/Bresenham%27s_line_algorithm#JavaScript
@@ -75,9 +73,11 @@ const gridTapped = (x,y) => {
 }
 
 canvas.addEventListener("mousedown",event => {
-    grid.hitDetectionX = event.clientX;
-    grid.hitDetectionY = event.clientY;
-    mouseDown = true;
+    if(!capturingTouch) {
+        grid.hitDetectionX = event.clientX;
+        grid.hitDetectionY = event.clientY;
+        mouseDown = true;
+    }
 });
 
 canvas.addEventListener("mousemove",event => {
@@ -88,11 +88,12 @@ canvas.addEventListener("mousemove",event => {
 });
 
 const endMouseDetection = function() {
-    grid.hitDetectionX = -1;
     mouseDown = false;
-    lastDrawPosition = null;
+    if(!capturingTouch) {
+        grid.hitDetectionX = -1;
+        lastDrawPosition = null;
+    }
 }
-
 canvas.addEventListener("mouseout",endMouseDetection);
 canvas.addEventListener("mouseup",endMouseDetection);
 
@@ -105,12 +106,78 @@ canvas.addEventListener("wheel",event => {
     }
 });
 
+const keyPool = {};
 window.addEventListener("keydown",event => {
     const key = event.key.toLowerCase();
     if(!keyPool[key]) {
         keyPool[key] = {
             frames: 0
         };
+    }
+});
+
+window.addEventListener("keyup",event => {
+
+    const key = event.key.toLowerCase();
+    if(keyPool[key]) {
+        delete keyPool[key];
+    }
+
+    if(keyPool["ctrl"]) {
+        delete keyPool["ctrl"];
+    }
+    if(keyPool["alt"]) {
+        delete keyPool["alt"];
+    }
+    if(keyPool["shift"]) {
+        delete keyPool["shift"];
+    }
+});
+
+let capturingTouch = false;
+let touchMoved = null;
+
+canvas.addEventListener("touchstart",event => {
+    if(!capturingTouch && !mouseDown) {
+        capturingTouch = true;
+        const touch = event.touches[0];
+
+        grid.hitDetectionX = touch.clientX;
+        grid.hitDetectionY = touch.clientY;
+
+        console.log(touch);
+
+    }
+});
+let touchMoveTimeout;
+canvas.addEventListener("touchmove",event => {
+    if(capturingTouch) {
+        const touch = event.touches[0];
+        touchMoved = {
+            x: touch.clientX,
+            y: touch.clientY
+        }
+        if(touchMoveTimeout) {
+            clearTimeout(touchMoveTimeout);
+        }
+        touchMoveTimeout = setTimeout(endTouch,20);
+    }
+});
+
+const endTouch = function() {
+    capturingTouch = false;
+    touchMoved = null;
+    grid.hitDetectionX = -1;
+}
+
+canvas.addEventListener("touchcancel",endTouch);
+canvas.addEventListener("touchend",function(event) {
+    if(capturingTouch) {
+        if(touchMoved === null) {
+            const register = grid.hitDetectionRegister;
+            grid.set(register.x,register.y,1);
+        }
+        endTouch();
     }
 });
 
@@ -132,25 +199,6 @@ const snapHorizontal = function() {
 const snapVertical = function() {
     grid.camera.y = Math.ceil(grid.camera.y);
 }
-
-window.addEventListener("keyup",event => {
-
-    delete keyPool[event.key.toLowerCase()];
-
-    if(keyPool["ctrl"]) {
-        delete keyPool["ctrl"];
-    }
-    if(keyPool["alt"]) {
-        delete keyPool["alt"];
-    }
-    if(keyPool["shift"]) {
-        delete keyPool["shift"];
-    }
-});
-
-grid.camera.x = Math.floor(grid.width / 2) + 1;
-grid.camera.y = Math.floor(grid.height / 2) + 1;
-grid.camera.z = 45;
 
 function applyDeadZone(value) {
     if(value < 0) {
@@ -241,13 +289,14 @@ rendererState = (context,width,height,timestamp) => {
             //let rightXAxis = applyDeadZone(gamepad.axes[2]);
             let rightYAxis = applyDeadZone(-gamepad.axes[3]);
     
+            const scale = Math.floor(grid.camera.z);
     
             if(leftXAxis !== 0) {
-                grid.camera.x += (leftXAxis * maxGamepadCameraShift) / (grid.camera.z / inverseZoomFactor);
+                grid.camera.x += (leftXAxis * maxGamepadCameraShift) / (scale / inverseZoomFactor);
             }
     
             if(leftYAxis !== 0) {
-                grid.camera.y += (leftYAxis * maxGamepadCameraShift) / (grid.camera.z / inverseZoomFactor);
+                grid.camera.y += (leftYAxis * maxGamepadCameraShift) / (scale / inverseZoomFactor);
             }
     
     
@@ -265,6 +314,28 @@ rendererState = (context,width,height,timestamp) => {
             //context.fillText(rightXAxis,15,120);
             context.fillText(leftTrigger.pressed,15,120);
         }
+    }
+
+    if(touchMoved !== null) {
+        const scale = Math.floor(grid.camera.z);
+
+        let xDifference = (grid.hitDetectionX - touchMoved.x) / scale / touchInverseZoomFactor;
+        let yDifference = (grid.hitDetectionY - touchMoved.y) / scale / touchInverseZoomFactor;
+
+        if(xDifference > touchMaxShiftAmount) {
+            xDifference = touchMaxShiftAmount;
+        } else if(xDifference < -touchMaxShiftAmount) {
+            xDifference = -touchMaxShiftAmount;
+        }
+
+        if(yDifference > touchMaxShiftAmount) {
+            yDifference = touchMaxShiftAmount;
+        } else if(yDifference < -touchMaxShiftAmount) {
+            yDifference = -touchMaxShiftAmount;
+        }
+
+        grid.camera.x += xDifference;
+        grid.camera.y += yDifference;
 
     }
 
@@ -278,16 +349,16 @@ rendererState = (context,width,height,timestamp) => {
         keyPool[key].frames++;
         switch(key) {
             case "w":
-                grid.camera.y -= gradualCameraShiftAmount / (grid.camera.z / inverseZoomFactor);
+                grid.camera.y -= gradualCameraShiftAmount / (Math.floor(grid.camera.z) / inverseZoomFactor);
                 break;
             case "s":
-                grid.camera.y += gradualCameraShiftAmount / (grid.camera.z / inverseZoomFactor);
+                grid.camera.y += gradualCameraShiftAmount / (Math.floor(grid.camera.z) / inverseZoomFactor);
                 break;
             case "a":
-                grid.camera.x -= gradualCameraShiftAmount / (grid.camera.z / inverseZoomFactor);
+                grid.camera.x -= gradualCameraShiftAmount / (Math.floor(grid.camera.z) / inverseZoomFactor);
                 break;
             case "d":
-                grid.camera.x += gradualCameraShiftAmount / (grid.camera.z / inverseZoomFactor);
+                grid.camera.x += gradualCameraShiftAmount / (Math.floor(grid.camera.z) / inverseZoomFactor);
                 break;
         }
     }
@@ -295,7 +366,6 @@ rendererState = (context,width,height,timestamp) => {
 
 const gamepads = {};
 let activeGamepadIndex = null;
-
 window.addEventListener("gamepadconnected", function(e) {
     if(Object.keys(gamepads).length < 1) {
         activeGamepadIndex = e.gamepad.index;
@@ -310,10 +380,6 @@ window.addEventListener("gamepadconnected", function(e) {
     );
 
 });
-
-let hasFocus = document.hasFocus();
-window.addEventListener("blur",()=>hasFocus=false);
-window.addEventListener("focus",()=>hasFocus=true);
 
 window.addEventListener("gamepaddisconnected", function(e) {
     const gamepadKeys = Object.keys(gamepads);
@@ -334,8 +400,17 @@ window.addEventListener("gamepaddisconnected", function(e) {
     );
 });
 
+
+let hasFocus = document.hasFocus();
+window.addEventListener("blur",()=>hasFocus=false);
+window.addEventListener("focus",()=>hasFocus=true);
+
 window.addEventListener("resize",() => {
     grid.refold(canvas.width,canvas.height);
 });
+
+grid.camera.x = Math.floor(grid.width / 2) + 1;
+grid.camera.y = Math.floor(grid.height / 2) + 1;
+grid.camera.z = 45;
 
 startRenderer();
