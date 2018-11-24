@@ -411,6 +411,13 @@ window.addEventListener("resize",() => {
 
 grid.camera.x = Math.floor(grid.width / 2) + 1;
 grid.camera.y = Math.floor(grid.height / 2) + 1;
-grid.camera.z = 45;
+grid.camera.z = canvas.width / 50;
+
+if(grid.camera.z > maxZoom) {
+    grid.camera.z = maxZoom;
+}
+if(grid.camera.z < minZoom) {
+    grid.camera.z = minZoom;
+}
 
 startRenderer();
