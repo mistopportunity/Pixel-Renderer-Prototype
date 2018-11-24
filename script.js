@@ -5,7 +5,7 @@ const grid = new centroidGrid(2000,2000,canvas.width>=canvas.height);
 let lastDrawPosition = null;
 let mouseDown = false;
 
-const gradualCameraShiftAmount = 0.2;
+const gradualCameraShiftAmount = 0.22;
 
 const maxGamepadCameraShift = 0.32;
 const gamepadDeadzone = 0.2;
@@ -184,85 +184,88 @@ rendererState = (context,width,height,timestamp) => {
     if(activeGamepadIndex !== null && hasFocus) {
         const gamepad = navigator.getGamepads()[activeGamepadIndex];
 
-        const upPressed = gamepad.buttons[12].pressed;
-        const downPressed = gamepad.buttons[13].pressed;
-        const leftPressed = gamepad.buttons[14].pressed;
-        const rightPressed = gamepad.buttons[15].pressed;
-
-        const leftTrigger = gamepad.buttons[7];
-
-        if(leftTrigger.pressed || gamepad.buttons[0].pressed) {
-            grid.set(Math.round(grid.camera.x-1),Math.round(grid.camera.y-1),1);
-        }
-
-        if(upPressed) {
-            if(!buttonStates.up) {
-                snapUp();
-                snapHorizontal();
-                buttonStates.up = true;
+        if(gamepad !== null && gamepad.connected) {
+            const upPressed = gamepad.buttons[12].pressed;
+            const downPressed = gamepad.buttons[13].pressed;
+            const leftPressed = gamepad.buttons[14].pressed;
+            const rightPressed = gamepad.buttons[15].pressed;
+    
+            const leftTrigger = gamepad.buttons[7];
+    
+            if(leftTrigger.pressed || gamepad.buttons[0].pressed) {
+                grid.set(Math.round(grid.camera.x-1),Math.round(grid.camera.y-1),1);
             }
-        } else {
-            buttonStates.up = false;
-        }
-
-        if(downPressed) {
-            if(!buttonStates.down) {
-                snapDown();
-                snapHorizontal();
-                buttonStates.down = true;
+    
+            if(upPressed) {
+                if(!buttonStates.up) {
+                    snapUp();
+                    snapHorizontal();
+                    buttonStates.up = true;
+                }
+            } else {
+                buttonStates.up = false;
             }
-        } else {
-            buttonStates.down = false;
-        }
-
-        if(leftPressed) {
-            if(!buttonStates.left) {
-                snapLeft();
-                snapVertical();
-                buttonStates.left = true;
+    
+            if(downPressed) {
+                if(!buttonStates.down) {
+                    snapDown();
+                    snapHorizontal();
+                    buttonStates.down = true;
+                }
+            } else {
+                buttonStates.down = false;
             }
-        } else {
-            buttonStates.left = false;
-        }
-
-        if(rightPressed) {
-            if(!buttonStates.right) {
-                snapRight();
-                snapVertical();
-                buttonStates.right = true;
+    
+            if(leftPressed) {
+                if(!buttonStates.left) {
+                    snapLeft();
+                    snapVertical();
+                    buttonStates.left = true;
+                }
+            } else {
+                buttonStates.left = false;
             }
-        } else {
-            buttonStates.right = false;
+    
+            if(rightPressed) {
+                if(!buttonStates.right) {
+                    snapRight();
+                    snapVertical();
+                    buttonStates.right = true;
+                }
+            } else {
+                buttonStates.right = false;
+            }
+    
+            let leftXAxis = applyDeadZone(gamepad.axes[0]);
+            let leftYAxis = applyDeadZone(gamepad.axes[1]);
+            //let rightXAxis = applyDeadZone(gamepad.axes[2]);
+            let rightYAxis = applyDeadZone(-gamepad.axes[3]);
+    
+    
+            if(leftXAxis !== 0) {
+                grid.camera.x += (leftXAxis * maxGamepadCameraShift) / (grid.camera.z / inverseZoomFactor);
+            }
+    
+            if(leftYAxis !== 0) {
+                grid.camera.y += (leftYAxis * maxGamepadCameraShift) / (grid.camera.z / inverseZoomFactor);
+            }
+    
+    
+            grid.camera.z += (rightYAxis * 2) * (grid.camera.z / inverseZoomFactor);
+    
+            if(grid.camera.z < minZoom) {
+                grid.camera.z = minZoom;
+            } else if(grid.camera.z > maxZoom) {
+                grid.camera.z = maxZoom;
+            }
+    
+            context.font = "30px Arial";
+            context.fillText("lx " + leftXAxis,15,40);
+            context.fillText("ly " + leftYAxis,15,80);
+            //context.fillText(rightXAxis,15,120);
+            context.fillText(leftTrigger.pressed,15,120);
         }
 
-        let leftXAxis = applyDeadZone(gamepad.axes[0]);
-        let leftYAxis = applyDeadZone(gamepad.axes[1]);
-        //let rightXAxis = applyDeadZone(gamepad.axes[2]);
-        let rightYAxis = applyDeadZone(-gamepad.axes[3]);
-
-
-        if(leftXAxis !== 0) {
-            grid.camera.x += (leftXAxis * maxGamepadCameraShift) / (grid.camera.z / inverseZoomFactor);
-        }
-
-        if(leftYAxis !== 0) {
-            grid.camera.y += (leftYAxis * maxGamepadCameraShift) / (grid.camera.z / inverseZoomFactor);
-        }
-
-
-        grid.camera.z += (rightYAxis * 2) * (grid.camera.z / inverseZoomFactor);
-
-        if(grid.camera.z < minZoom) {
-            grid.camera.z = minZoom;
-        } else if(grid.camera.z > maxZoom) {
-            grid.camera.z = maxZoom;
-        }
-
-        context.font = "30px Arial";
-        context.fillText("lx " + leftXAxis,15,40);
-        context.fillText("ly " + leftYAxis,15,80);
-        //context.fillText(rightXAxis,15,120);
-        context.fillText(leftTrigger.pressed,15,120);
     }
 
     if(mouseDown) {
@@ -315,7 +318,7 @@ window.addEventListener("focus",()=>hasFocus=true);
 window.addEventListener("gamepaddisconnected", function(e) {
     const gamepadKeys = Object.keys(gamepads);
 
-    if(activeGamepad.id === e.gamepad.id) {
+    if(activeGamepadIndex === e.gamepad.id) {
         if(gamepadKeys.length <= 1) {
             activeGamepadIndex = null;
         } else {
