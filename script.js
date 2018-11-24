@@ -95,7 +95,6 @@ canvas.addEventListener("wheel",event => {
 
 const keyPool = {};
 const gradualCameraShiftAmount = 0.2;
-const magneticSnapFrameTimeout = 10;
 
 const maxGamepadCameraShift = 0.32;
 const gamepadDeadzone = 0.2;
@@ -131,45 +130,9 @@ const snapVertical = function() {
     grid.camera.y = Math.ceil(grid.camera.y);
 }
 
-const magneticSnap = function(direction) {
-    switch(direction) {
-        case "up":
-            snapUp();
-            break;
-        case "down":
-            snapDown();
-            break;
-        case "left":
-            snapLeft();
-            break;
-        case "right":
-            snapRight();
-            break;
-    }
-}
-
 window.addEventListener("keyup",event => {
-    const key = event.key.toLowerCase();
-    if(keyPool[key]) {
-        if(keyPool[key].frames <= magneticSnapFrameTimeout) {
-            switch(key) {
-                case "w":
-                    magneticSnap("up");
-                    break;
-                case "s":
-                magneticSnap("down");
-                    break;
-                case "a":
-                    magneticSnap("left");
-                    break;
-                case "d":
-                    magneticSnap("right");
-                    break;
-            }
-        }
 
-        delete keyPool[key];
-    }
+    delete keyPool[event.key.toLowerCase()];
 
     if(keyPool["ctrl"]) {
         delete keyPool["ctrl"];
@@ -209,19 +172,25 @@ const buttonStates = {
     up: false,
     down: false,
     left: false,
-    right: false
+    right: false,
 }
 
 rendererState = (context,width,height,timestamp) => {
     grid.render(context,width,height,timestamp);
 
-    if(activeGamepadIndex !== null) {//hasFocus
+    if(activeGamepadIndex !== null && hasFocus) {
         const gamepad = navigator.getGamepads()[activeGamepadIndex];
 
         const upPressed = gamepad.buttons[12].pressed;
         const downPressed = gamepad.buttons[13].pressed;
         const leftPressed = gamepad.buttons[14].pressed;
         const rightPressed = gamepad.buttons[15].pressed;
+
+        const leftTrigger = gamepad.buttons[7];
+
+        if(leftTrigger.pressed) {
+            grid.set(Math.round(grid.camera.x-1),Math.round(grid.camera.y-1),1);
+        }
 
         if(upPressed) {
             if(!buttonStates.up) {
@@ -292,7 +261,7 @@ rendererState = (context,width,height,timestamp) => {
         context.fillText("lx " + leftXAxis,15,40);
         context.fillText("ly " + leftYAxis,15,80);
         //context.fillText(rightXAxis,15,120);
-        context.fillText("ry " + rightYAxis,15,120);
+        context.fillText(leftTrigger.pressed,15,120);
     }
 
     if(mouseDown) {
