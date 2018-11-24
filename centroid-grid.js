@@ -176,9 +176,9 @@ function centroidGrid(width,height,isLandscape,data) {
         }
 
 
-        const pointerX = this.pointerPositionX;
-        const pointerY = this.pointerPositionY;
-        let pointerRegister = (pointerX < 0 || pointerY < 0 || pointerX > width || pointerY > height) ? null : -1
+        const hitDetectionX = this.hitDetectionX;
+        const hitDetectionY = this.hitDetectionY;
+        let hitDetectionRegister = (hitDetectionX < 0 || hitDetectionY < 0 || hitDetectionX > width || hitDetectionY > height) ? null : -1
 
         const innerDrawLogic = function(rowIndex,columnIndex,color) {
 
@@ -187,12 +187,12 @@ function centroidGrid(width,height,isLandscape,data) {
             const posX = ((columnIndex - dataStartX + xOffset) * scale) + centerXOffset;
             const posY = ((rowIndex - dataStartY + yOffset) * scale) + centerYOffset;
 
-            if(pointerRegister === -1) {
-                const meetsX = pointerX >= posX && pointerX <= posX + scale
+            if(hitDetectionRegister === -1) {
+                const meetsX = hitDetectionX >= posX && hitDetectionX <= posX + scale
                 if(meetsX) {
-                const meetsY = pointerY >= posY && pointerY <= posY + scale;
+                const meetsY = hitDetectionY >= posY && hitDetectionY <= posY + scale;
                 if(meetsY) {
-                    pointerRegister = {
+                    hitDetectionRegister = {
                         x: columnIndex,
                         y: rowIndex
                     }
@@ -248,7 +248,7 @@ function centroidGrid(width,height,isLandscape,data) {
 
         context.fillRect(width/2-scale/4,height/2-scale/4,scale/2,scale/2);
 
-        this.pointerRegister = pointerRegister === -1 ? null : pointerRegister;
+        this.hitDetectionRegister = hitDetectionRegister === -1 ? null : hitDetectionRegister;
 
     };
 
@@ -261,10 +261,10 @@ function centroidGrid(width,height,isLandscape,data) {
         }
     };
 
-    this.pointerPositionX = 0;
-    this.pointerPositionY = 0;
+    this.hitDetectionX = 0;
+    this.hitDetectionY = 0;
 
-    this.pointerRegister = null;
+    this.hitDetectionRegister = null;
 
     
     console.log(`Data starting in ${isLandscape ? "landscape" : "portrait"} mode`);
