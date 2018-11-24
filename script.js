@@ -12,7 +12,7 @@ const deadzoneNormalizer = 1 / (1 - gamepadDeadzone);
 
 const inverseZoomFactor = 50;
 
-const touchInverseZoomFactor = 30;
+const touchInverseZoomFactor = 40;
 const touchMaxShiftAmount = 0.4;
 
 function bline(dx,dy,x0, y0, x1, y1) {
@@ -149,7 +149,6 @@ canvas.addEventListener("touchstart",event => {
 
     }
 });
-let touchMoveTimeout;
 canvas.addEventListener("touchmove",event => {
     if(capturingTouch) {
         const touch = event.touches[0];
@@ -157,10 +156,6 @@ canvas.addEventListener("touchmove",event => {
             x: touch.clientX,
             y: touch.clientY
         }
-        if(touchMoveTimeout) {
-            clearTimeout(touchMoveTimeout);
-        }
-        touchMoveTimeout = setTimeout(endTouch,20);
     }
 });
 
