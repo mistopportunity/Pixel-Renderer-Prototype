@@ -71,6 +71,7 @@ const gridTapped = (x,y) => {
 
 canvas.addEventListener("mousedown",event => {
     if(!capturingTouch) {
+        zoomInput.disabled = true;
         grid.hitDetectionX = event.clientX;
         grid.hitDetectionY = event.clientY;
         mouseDown = true;
@@ -78,7 +79,7 @@ canvas.addEventListener("mousedown",event => {
 });
 
 canvas.addEventListener("mousemove",event => {
-    if(capturingTouch && mouseDown) {
+    if(!capturingTouch && mouseDown) {
         grid.hitDetectionX = event.clientX;
         grid.hitDetectionY = event.clientY;
     }
@@ -138,6 +139,9 @@ let cameraStart = null;
 
 canvas.addEventListener("touchstart",event => {
     if(!capturingTouch && !mouseDown) {
+
+        zoomInput.disabled = false;
+
         capturingTouch = true;
         const touch = event.touches[0];
 
@@ -305,6 +309,7 @@ rendererState = (context,width,height,timestamp) => {
                 grid.camera.z = maxZoom;
             }
             updatezoomInput();
+
             context.font = "30px Arial";
             context.fillText("lx " + leftXAxis,15,40);
             context.fillText("ly " + leftYAxis,15,80);
@@ -344,7 +349,7 @@ rendererState = (context,width,height,timestamp) => {
                 break;
         }
     }
-    grid.camera.z = zoomInput.value;
+    grid.camera.z = Number(zoomInput.value);
 }
 
 const gamepads = {};
