@@ -70,6 +70,7 @@ const gridTapped = (x,y) => {
 }
 
 canvas.addEventListener("mousedown",event => {
+    console.log("mouse down");
     if(!capturingTouch) {
         zoomInput.disabled = true;
         grid.hitDetectionX = event.clientX;
@@ -79,6 +80,7 @@ canvas.addEventListener("mousedown",event => {
 });
 
 canvas.addEventListener("mousemove",event => {
+    console.log("mouse move");
     if(!capturingTouch && mouseDown) {
         grid.hitDetectionX = event.clientX;
         grid.hitDetectionY = event.clientY;
@@ -92,8 +94,14 @@ const endMouseDetection = function() {
         lastDrawPosition = null;
     }
 }
-canvas.addEventListener("mouseout",endMouseDetection);
-canvas.addEventListener("mouseup",endMouseDetection);
+canvas.addEventListener("mouseout",event => {
+    console.log("mouse out");
+    endMouseDetection();
+});
+canvas.addEventListener("mouseup",event => {
+    console.log("mouse up");
+    endMouseDetection();
+});
 
 canvas.addEventListener("wheel",event => {
     grid.camera.z -= (event.deltaY / 10) * (grid.camera.z / inverseZoomFactor);
@@ -138,6 +146,7 @@ let touchMoved = null;
 let cameraStart = null;
 
 canvas.addEventListener("touchstart",event => {
+    console.log("touch start");
     if(!capturingTouch && !mouseDown) {
 
         zoomInput.disabled = false;
@@ -157,6 +166,7 @@ canvas.addEventListener("touchstart",event => {
     event.preventDefault();
 });
 canvas.addEventListener("touchmove",event => {
+    console.log("touch move");
     if(capturingTouch) {
         const touch = event.touches[0];
         touchMoved = {
@@ -175,10 +185,12 @@ const endTouch = function() {
 }
 
 canvas.addEventListener("touchcancel",function(event) {
+    console.log("touch cancel");
     endTouch();
     event.preventDefault();
 });
 canvas.addEventListener("touchend",function(event) {
+    console.log("touch end");
     if(capturingTouch) {
         if(touchMoved === null) {
             const register = grid.hitDetectionRegister;
