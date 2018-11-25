@@ -194,7 +194,9 @@ function centroidGrid(width,height,isLandscape,data) {
                 if(meetsY) {
                     hitDetectionRegister = {
                         x: columnIndex,
-                        y: rowIndex
+                        y: rowIndex,
+                        //subX: (hitDetectionX - posX) / horizontalScale,
+                       // subY: (hitDetectionY - posY) / verticalScale
                     }
                 }}
             }

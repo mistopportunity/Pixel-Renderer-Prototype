@@ -12,9 +12,6 @@ const deadzoneNormalizer = 1 / (1 - gamepadDeadzone);
 
 const inverseZoomFactor = 50;
 
-const touchInverseZoomFactor = 40;
-const touchMaxShiftAmount = 0.4;
-
 function bline(dx,dy,x0, y0, x1, y1) {
     //http://rosettacode.org/wiki/Bitmap/Bresenham%27s_line_algorithm#JavaScript
     var sx = x0 < x1 ? 1 : -1;
@@ -81,7 +78,7 @@ canvas.addEventListener("mousedown",event => {
 });
 
 canvas.addEventListener("mousemove",event => {
-    if(mouseDown) {
+    if(capturingTouch && mouseDown) {
         grid.hitDetectionX = event.clientX;
         grid.hitDetectionY = event.clientY;
     }
@@ -136,6 +133,7 @@ window.addEventListener("keyup",event => {
 
 let capturingTouch = false;
 let touchMoved = null;
+let cameraStart = null;
 
 canvas.addEventListener("touchstart",event => {
     if(!capturingTouch && !mouseDown) {
@@ -144,6 +142,11 @@ canvas.addEventListener("touchstart",event => {
 
         grid.hitDetectionX = touch.clientX;
         grid.hitDetectionY = touch.clientY;
+
+        cameraStart = {
+            x: grid.camera.x,
+            y: grid.camera.y
+        };
 
         console.log(touch);
 
@@ -163,6 +166,7 @@ const endTouch = function() {
     capturingTouch = false;
     touchMoved = null;
     grid.hitDetectionX = -1;
+    cameraStart = null;
 }
 
 canvas.addEventListener("touchcancel",endTouch);
@@ -294,7 +298,6 @@ rendererState = (context,width,height,timestamp) => {
                 grid.camera.y += (leftYAxis * maxGamepadCameraShift) / (scale / inverseZoomFactor);
             }
     
-    
             grid.camera.z += (rightYAxis * 2) * (grid.camera.z / inverseZoomFactor);
     
             if(grid.camera.z < minZoom) {
@@ -313,25 +316,10 @@ rendererState = (context,width,height,timestamp) => {
 
     if(touchMoved !== null) {
         const scale = Math.floor(grid.camera.z);
-
-        let xDifference = (grid.hitDetectionX - touchMoved.x) / scale / touchInverseZoomFactor;
-        let yDifference = (grid.hitDetectionY - touchMoved.y) / scale / touchInverseZoomFactor;
-
-        if(xDifference > touchMaxShiftAmount) {
-            xDifference = touchMaxShiftAmount;
-        } else if(xDifference < -touchMaxShiftAmount) {
-            xDifference = -touchMaxShiftAmount;
-        }
-
-        if(yDifference > touchMaxShiftAmount) {
-            yDifference = touchMaxShiftAmount;
-        } else if(yDifference < -touchMaxShiftAmount) {
-            yDifference = -touchMaxShiftAmount;
-        }
-
-        grid.camera.x += xDifference;
-        grid.camera.y += yDifference;
-
+        const xDifference = (grid.hitDetectionX - touchMoved.x) / scale;
+        const yDifference = (grid.hitDetectionY - touchMoved.y) / scale;
+        grid.camera.x = cameraStart.x + xDifference;
+        grid.camera.y = cameraStart.y + yDifference;
     }
 
     if(mouseDown) {
