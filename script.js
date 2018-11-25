@@ -9,6 +9,7 @@ const gradualCameraShiftAmount = 0.22;
 const maxGamepadCameraShift = 0.32;
 const gamepadDeadzone = 0.2;
 const deadzoneNormalizer = 1 / (1 - gamepadDeadzone);
+const touchDeadZone = 4;
 
 const inverseZoomFactor = 50;
 
@@ -169,10 +170,20 @@ canvas.addEventListener("touchmove",event => {
     console.log("touch move");
     if(capturingTouch) {
         const touch = event.touches[0];
-        touchMoved = {
-            x: touch.clientX,
-            y: touch.clientY
+        if(touchMoved !== null) {
+            touchMoved.x = touch.clientX;
+            touchMoved.y = touch.clientY;
+        } else {
+            const xDifference = Math.abs(grid.hitDetectionX - touch.clientX);
+            const yDifference = Math.abs(grid.hitDetectionY - touch.clientY);
+            if(xDifference + yDifference >= touchDeadZone) {
+                touchMoved = {
+                    x: touch.clientX,
+                    y: touch.clientY
+                }            
+            }
         }
+
     }
     event.preventDefault();
 });
