@@ -101,6 +101,7 @@ canvas.addEventListener("wheel",event => {
     } else if(grid.camera.z > maxZoom) {
         grid.camera.z = maxZoom;
     }
+    updatezoomInput();
 });
 
 const keyPool = {};
@@ -147,8 +148,6 @@ canvas.addEventListener("touchstart",event => {
             x: grid.camera.x,
             y: grid.camera.y
         };
-
-        console.log(touch);
 
     }
 });
@@ -305,7 +304,7 @@ rendererState = (context,width,height,timestamp) => {
             } else if(grid.camera.z > maxZoom) {
                 grid.camera.z = maxZoom;
             }
-    
+            updatezoomInput();
             context.font = "30px Arial";
             context.fillText("lx " + leftXAxis,15,40);
             context.fillText("ly " + leftYAxis,15,80);
@@ -345,6 +344,7 @@ rendererState = (context,width,height,timestamp) => {
                 break;
         }
     }
+    grid.camera.z = zoomInput.value;
 }
 
 const gamepads = {};
@@ -401,6 +401,15 @@ if(grid.camera.z > maxZoom) {
 }
 if(grid.camera.z < minZoom) {
     grid.camera.z = minZoom;
+}
+
+const zoomInput = document.getElementById("zoomInput");
+zoomInput.min = minZoom;
+zoomInput.max = maxZoom;
+zoomInput.value = grid.camera.z;
+
+const updatezoomInput = function() {
+    zoomInput.value = grid.camera.z;
 }
 
 startRenderer();
