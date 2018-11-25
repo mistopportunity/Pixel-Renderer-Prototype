@@ -71,6 +71,7 @@ const gridTapped = (x,y) => {
 
 canvas.addEventListener("mousedown",event => {
     if(!capturingTouch) {
+        console.log("mouse down");
         zoomInput.disabled = true;
         grid.hitDetectionX = event.clientX;
         grid.hitDetectionY = event.clientY;
