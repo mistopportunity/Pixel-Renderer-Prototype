@@ -155,6 +155,7 @@ canvas.addEventListener("touchstart",event => {
         };
 
     }
+    event.preventDefault();
 });
 canvas.addEventListener("touchmove",event => {
     if(capturingTouch) {
@@ -164,6 +165,7 @@ canvas.addEventListener("touchmove",event => {
             y: touch.clientY
         }
     }
+    event.preventDefault();
 });
 
 const endTouch = function() {
@@ -173,7 +175,10 @@ const endTouch = function() {
     cameraStart = null;
 }
 
-canvas.addEventListener("touchcancel",endTouch);
+canvas.addEventListener("touchcancel",function(event) {
+    endTouch();
+    event.preventDefault();
+});
 canvas.addEventListener("touchend",function(event) {
     if(capturingTouch) {
         if(touchMoved === null) {
@@ -182,6 +187,7 @@ canvas.addEventListener("touchend",function(event) {
         }
         endTouch();
     }
+    event.preventDefault();
 });
 
 const snapUp = function() {
