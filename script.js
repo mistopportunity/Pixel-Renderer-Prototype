@@ -1,6 +1,6 @@
 const minZoom = 30;
 const maxZoom = 400;
-const grid = new centroidGrid(2000,2000,canvas.width>=canvas.height);
+const grid = new centroidGrid(100,100,canvas.width>=canvas.height);
 
 let lastDrawPosition = null;
 let mouseDown = false;
@@ -33,8 +33,10 @@ const gridTapped = (x,y) => {
     //const newValue = grid.get(x,y) === 1 ? null : 1;
 
     if(lastDrawPosition != null && mouseDown) {
-        const xDistance = Math.abs(x - lastDrawPosition.x);
-        const yDistance = Math.abs(y - lastDrawPosition.y);
+
+        let xDistance = Math.abs(x - lastDrawPosition.x);
+        let yDistance = Math.abs(y - lastDrawPosition.y);
+
         if(xDistance + yDistance > 1) {
             if(xDistance > 0 && yDistance < 1) {//just x
                 if(x < lastDrawPosition.x) {
@@ -49,11 +51,15 @@ const gridTapped = (x,y) => {
             } else if(yDistance > 0 && xDistance < 1) {//just y
                 if(y < lastDrawPosition.y) {
                     for(let i = y+1;i<lastDrawPosition.y;i++) {
-                        grid.set(x,i,colorIndex);
+                        if(i < grid.height && i > -1) {
+                            grid.set(x,i,colorIndex);
+                        }
                     }
                 } else {
                     for(let i = lastDrawPosition.y-1;i<y;i++) {
-                        grid.set(x,i,colorIndex);
+                        if(i < grid.height && i > -1) {
+                            grid.set(x,i,colorIndex);
+                        }
                     }
                 }
             } else {
@@ -281,21 +287,27 @@ canvas.addEventListener("touchend",function(event) {
 
 const snapUp = function() {
     grid.camera.y = Math.ceil(grid.camera.y - 1);
+    validateYPos();
 }
 const snapDown = function() {
     grid.camera.y = Math.floor(grid.camera.y + 1);
+    validateYPos();
 }
 const snapRight = function() {
     grid.camera.x = Math.floor(grid.camera.x + 1);
+    validateXPos();
 }
 const snapLeft = function() {
     grid.camera.x = Math.ceil(grid.camera.x - 1);
+    validateXPos();
 }
 const snapHorizontal = function() {
     grid.camera.x = Math.ceil(grid.camera.x);
+    validateXPos();
 }
 const snapVertical = function() {
     grid.camera.y = Math.ceil(grid.camera.y);
+    validateYPos();
 }
 
 function applyDeadZone(value) {
@@ -340,7 +352,19 @@ rendererState = (context,width,height,timestamp) => {
 
             const rightTrigger = gamepad.buttons[7];
             if(rightTrigger.pressed || gamepad.buttons[0].pressed) {
-                grid.set(Math.round(grid.camera.x-1),Math.round(grid.camera.y-1),colorIndex);
+                let xWithMask = Math.round(grid.camera.x-1);
+                let yWithMask = Math.round(grid.camera.y-1);
+                if(xWithMask < 0) {
+                    xWithMask += grid.width;
+                } else {
+                    xWithMask = xWithMask % grid.width;//this can't happen?
+                }
+                if(yWithMask < 0) {
+                    yWithMask += grid.height;
+                } else {
+                    yWithMask = yWithMask % grid.height;
+                }
+                grid.set(xWithMask,yWithMask,colorIndex);
             }
 
             processButton("up",()=>{
@@ -381,10 +405,12 @@ rendererState = (context,width,height,timestamp) => {
     
             if(leftXAxis !== 0) {
                 grid.camera.x += (leftXAxis * maxGamepadCameraShift) / (scale / inverseZoomFactor);
+                validateXPos();
             }
     
             if(leftYAxis !== 0) {
                 grid.camera.y += (leftYAxis * maxGamepadCameraShift) / (scale / inverseZoomFactor);
+                validateYPos();
             }
     
             grid.camera.z += (rightYAxis * 2) * (grid.camera.z / inverseZoomFactor);
@@ -408,6 +434,8 @@ rendererState = (context,width,height,timestamp) => {
         const yDifference = (grid.hitDetectionY - touchMoved.y) / scale;
         grid.camera.x = cameraStart.x + xDifference;
         grid.camera.y = cameraStart.y + yDifference;
+        validateXPos();
+        validateYPos();
     }
 
     if(mouseDown) {
@@ -421,19 +449,29 @@ rendererState = (context,width,height,timestamp) => {
         switch(key) {
             case "w":
                 grid.camera.y -= gradualCameraShiftAmount / (Math.floor(grid.camera.z) / inverseZoomFactor);
+                validateYPos();
                 break;
             case "s":
                 grid.camera.y += gradualCameraShiftAmount / (Math.floor(grid.camera.z) / inverseZoomFactor);
+                validateYPos();
                 break;
             case "a":
                 grid.camera.x -= gradualCameraShiftAmount / (Math.floor(grid.camera.z) / inverseZoomFactor);
+                validateXPos();
                 break;
             case "d":
                 grid.camera.x += gradualCameraShiftAmount / (Math.floor(grid.camera.z) / inverseZoomFactor);
+                validateXPos();
                 break;
         }
     }
     grid.camera.z = Number(zoomInput.value);
+
+    //console.log(`X: ${grid.camera.x}, Y: ${grid.camera.y}`);
+    if(mouseDown) {
+        console.log(`last draw X: ${lastDrawPosition.x}, Y: ${lastDrawPosition.y}`);
+        console.log(`X: ${grid.hitDetectionRegister.x}, Y: ${grid.hitDetectionRegister.y}`);
+    }
 }
 
 const gamepads = {};
@@ -536,8 +574,25 @@ window.addEventListener("resize",() => {
     grid.refold(canvas.width,canvas.height);
 });
 
-grid.camera.x = Math.floor(grid.width / 2) + 1;
-grid.camera.y = Math.floor(grid.height / 2) + 1;
+
+
+const validateXPos = () => {
+    if(grid.camera.x < 0) {
+        grid.camera.x += grid.width;
+    } else {
+        grid.camera.x = grid.camera.x % grid.width;
+    }
+}
+const validateYPos = () => {
+    if(grid.camera.y < 0) {
+        grid.camera.y += grid.height;
+    } else {
+        grid.camera.y = grid.camera.y % grid.height;
+    }
+}
+
+grid.camera.x = Math.floor(grid.width / 2);
+grid.camera.y = Math.floor(grid.height / 2);
 grid.camera.z = canvas.width / 50;
 
 const zoomInput = document.getElementById("zoomInput");
@@ -555,7 +610,11 @@ const validateZoomChange = function() {
     zoomInput.value = grid.camera.z;
 }
 
+grid.set(0,0,colorSet.indexOf("White"));
+
 validateZoomChange();
+validateXPos();
+validateYPos();
 
 palleteShift(0);
 

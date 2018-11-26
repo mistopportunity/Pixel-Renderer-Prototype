@@ -180,7 +180,7 @@ function centroidGrid(width,height,isLandscape,data) {
         const hitDetectionY = this.hitDetectionY;
         let hitDetectionRegister = (hitDetectionX < 0 || hitDetectionY < 0 || hitDetectionX > width || hitDetectionY > height) ? null : -1
 
-        const innerDrawLogic = function(rowIndex,columnIndex,color) {
+        const innerDrawLogic = function(rowIndex,columnIndex,color,rowValue,columnValue) {
 
             context.fillStyle = color;
 
@@ -193,8 +193,8 @@ function centroidGrid(width,height,isLandscape,data) {
                 const meetsY = hitDetectionY >= posY && hitDetectionY <= posY + verticalScale;
                 if(meetsY) {
                     hitDetectionRegister = {
-                        x: columnIndex,
-                        y: rowIndex,
+                        x: columnValue,
+                        y: rowValue,
                         //subX: (hitDetectionX - posX) / horizontalScale,
                        // subY: (hitDetectionY - posY) / verticalScale
                     }
@@ -213,17 +213,35 @@ function centroidGrid(width,height,isLandscape,data) {
             //get rows by Y, then use columns by X
             const verticalUpperbound = this.data.length;
             for(let rowIndex = startRow;rowIndex < endRow;rowIndex++) {
-                if(rowIndex > -1 && rowIndex < verticalUpperbound) {
-                    const row = this.data[rowIndex];
-                    const horizontalUpperbound = row.length;
-                    for(let columnIndex = startColumn;columnIndex < endColumn;columnIndex++) { 
-                        if(columnIndex > - 1 && columnIndex < horizontalUpperbound) {
-                            const color = this.colorForValue(row[columnIndex]);
-                            innerDrawLogic(rowIndex,columnIndex,color);
-                        }
 
-                    }
+                let row;
+                let rowValue = rowIndex;
+                if(rowIndex < 0) {
+
+                    rowValue = verticalUpperbound + rowIndex;
+
+                } else if(rowIndex > verticalUpperbound - 1) {
+
+                    rowValue = rowIndex - verticalUpperbound;
                 }
+
+                row = this.data[rowValue];
+
+                const horizontalUpperbound = row.length;
+                for(let columnIndex = startColumn;columnIndex < endColumn;columnIndex++) {
+
+                    let columnValue = columnIndex;
+                    if(columnIndex < 0) {
+                        columnValue = horizontalUpperbound + columnIndex;
+                    } else if(columnIndex > horizontalUpperbound - 1) {
+                        columnValue = columnIndex - horizontalUpperbound;
+                    }
+
+                    const color = this.colorForValue(row[columnValue]);
+                    innerDrawLogic(rowIndex,columnIndex,color,rowValue,columnValue);
+
+                }
+
             }
 
 
@@ -233,16 +251,35 @@ function centroidGrid(width,height,isLandscape,data) {
             //get columns by X, then use rows by Y
             const horizontalUpperbound = this.data.length;
             for(let columnIndex = startColumn;columnIndex < endColumn;columnIndex++) {
-                if(columnIndex > -1 && columnIndex < horizontalUpperbound) {
-                    const column = this.data[columnIndex];
-                    const verticalUpperbound = column.length;
-                    for(let rowIndex = startRow;rowIndex < endRow;rowIndex++) {
-                        if(rowIndex > -1 && rowIndex < verticalUpperbound) {
-                            const color = this.colorForValue(column[rowIndex]);
-                            innerDrawLogic(rowIndex,columnIndex,color);
-                        }
-                    }
+
+                let column;
+                let columnValue = columnIndex;
+                if(columnIndex < 0) {
+
+                    columnValue = horizontalUpperbound + columnIndex;
+
+                } else if(columnIndex > horizontalUpperbound - 1) {
+
+                    columnValue = columnIndex - horizontalUpperbound;
+
                 }
+                column = this.data[columnValue];
+
+                const verticalUpperbound = column.length;
+                for(let rowIndex = startRow;rowIndex < endRow;rowIndex++) {
+
+                    let rowValue = rowIndex;
+                    if(rowIndex < 0) {
+                        rowValue = verticalUpperbound + rowIndex;
+                    } else if(rowIndex > verticalUpperbound - 1) {
+                        rowValue = rowIndex - verticalUpperbound;
+                    }
+
+                    const color = this.colorForValue(column[rowValue]);
+                    innerDrawLogic(rowIndex,columnIndex,color,rowValue,columnValue);
+
+                }
+
             }
         }
 
