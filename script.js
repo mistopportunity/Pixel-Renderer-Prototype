@@ -73,7 +73,6 @@ const gridTapped = (x,y) => {
 canvas.addEventListener("mousedown",event => {
     console.log("mouse down");
     if(!capturingTouch) {
-        zoomInput.disabled = true;
         grid.hitDetectionX = event.clientX;
         grid.hitDetectionY = event.clientY;
         mouseDown = true;
@@ -144,66 +143,71 @@ let touchMoved = null;
 let cameraStart = null;
 
 canvas.addEventListener("touchstart",event => {
-    console.log("touch start");
     if(!capturingTouch && !mouseDown) {
         capturingTouch = true;
-        if(event.touches.length !== 2) {
-            zoomInput.disabled = false;
 
-            const touch = event.touches[0];
+        console.log("Single touch started");
+
+        const touch = event.touches[0];
     
-            grid.hitDetectionX = touch.clientX;
-            grid.hitDetectionY = touch.clientY;
-    
-            cameraStart = {
-                x: grid.camera.x,
-                y: grid.camera.y
-            };       
+        grid.hitDetectionX = touch.clientX;
+        grid.hitDetectionY = touch.clientY;
 
-        } else {
-
-            const touch1 = event.touches[0];
-            const touch2 = event.touches[1];
-
-            const xDifference = Math.abs(touch1.clientX - touch2.clientX);
-            const yDifference = Math.abs(touch1.clientY - touch2.clientY);
-
-
-            zoomTouch = {
-                cameraZStart: grid.camera.z,
-
-                startDistance: xDifference + yDifference,
-
-                x1: touch1.clienyX,
-                y1: touch1.clientY,
-                x2: touch2.clientX,
-                y2: touch2.clientY,
-            }
-
-        }
-
+        cameraStart = {
+            x: grid.camera.x,
+            y: grid.camera.y
+        };
     }
     event.preventDefault();
 });
 canvas.addEventListener("touchmove",event => {
-    console.log("touch move");
     if(capturingTouch) {
-        if(zoomTouch === null) {
-            const touch = event.touches[0];
-            if(touchMoved !== null) {
-                touchMoved.x = touch.clientX;
-                touchMoved.y = touch.clientY;
+       //console.log("captured touch move");
+        if(zoomTouch === null || event.touches.length < 2) {
+
+            if(event.touches.length > 1) {
+
+               
+                
+                console.log("Multiple touch advance");
+
+                const touch1 = event.touches[0];
+                const touch2 = event.touches[1];
+
+                const xDifference = Math.abs(touch1.clientX - touch2.clientX);
+                const yDifference = Math.abs(touch1.clientY - touch2.clientY);
+
+
+                zoomTouch = {
+                    cameraZStart: grid.camera.z,
+                    startDistance: xDifference + yDifference,
+
+                    x1: touch1.clientX,
+                    y1: touch1.clientY,
+                    x2: touch2.clientX,
+                    y2: touch2.clientY,
+                }
             } else {
-                const xDifference = Math.abs(grid.hitDetectionX - touch.clientX);
-                const yDifference = Math.abs(grid.hitDetectionY - touch.clientY);
-                if(xDifference + yDifference >= touchDeadZone) {
-                    touchMoved = {
-                        x: touch.clientX,
-                        y: touch.clientY
-                    }            
+
+
+
+                const touch = event.touches[0];
+                if(touchMoved !== null) {
+                    touchMoved.x = touch.clientX;
+                    touchMoved.y = touch.clientY;
+                } else {
+                    const xDifference = Math.abs(grid.hitDetectionX - touch.clientX);
+                    const yDifference = Math.abs(grid.hitDetectionY - touch.clientY);
+                    if(xDifference + yDifference >= touchDeadZone) {
+                        touchMoved = {
+                            x: touch.clientX,
+                            y: touch.clientY
+                        }            
+                    }
                 }
             }
         } else {
+            
             const touch1 = event.touches[0];
             const touch2 = event.touches[1];
 
@@ -213,6 +217,7 @@ canvas.addEventListener("touchmove",event => {
             zoomTouch.x2 = touch2.clientX;
             zoomTouch.y2 = touch2.clientY;
 
+            //console.log(zoomTouch);
         }
 
     }
@@ -220,6 +225,7 @@ canvas.addEventListener("touchmove",event => {
 });
 
 const endTouch = function() {
+    console.log("Touch nuke event");
     capturingTouch = false;
     touchMoved = null;
     grid.hitDetectionX = -1;
@@ -228,18 +234,42 @@ const endTouch = function() {
 }
 
 canvas.addEventListener("touchcancel",function(event) {
-    console.log("touch cancel");
+    //console.log("touch cancel");
     endTouch();
     event.preventDefault();
 });
 canvas.addEventListener("touchend",function(event) {
-    console.log("touch end");
+    //console.log("touch end");
     if(capturingTouch) {
-        if(zoomTouch === null && touchMoved === null) {
-            const register = grid.hitDetectionRegister;
-            grid.set(register.x,register.y,1);
+
+        console.log("Zoom mode: " + (zoomTouch !== null));
+        console.log("t moved: " + (touchMoved !== null));
+        if(zoomTouch === null) {
+            if(!touchMoved) {
+                const register = grid.hitDetectionRegister;
+                if(register) {
+                    grid.set(register.x,register.y,1);
+                }
+            }
+            endTouch();
+        } else {
+            zoomTouch = null;
+            console.log("Zoom touch deadvanced through touch end deduction");
+            const touch = event.touches[0];
+    
+            grid.hitDetectionX = touch.clientX;
+            grid.hitDetectionY = touch.clientY;
+            cameraStart = {
+                x: grid.camera.x,
+                y: grid.camera.y
+            };
+
+            touchMoved = {
+                x: touch.clientX,
+                y: touch.clientY
+            } 
         }
-        endTouch();
+
     }
     event.preventDefault();
 });
@@ -374,26 +404,21 @@ rendererState = (context,width,height,timestamp) => {
         }
     }
 
-    if(touchMoved !== null) {
+    if(zoomTouch !== null) {
+        const xDifference = Math.abs(zoomTouch.x1 - zoomTouch.x2);
+        const yDifference = Math.abs(zoomTouch.y1 - zoomTouch.y2);
+
+        const delta = (xDifference + yDifference) - zoomTouch.startDistance;
+        grid.camera.z = zoomTouch.cameraZStart + (delta / 2);
+        
+        validateZoomChange();
+        //todo
+    } else if(touchMoved !== null) {
         const scale = Math.floor(grid.camera.z);
-        if(zoomTouch === null) {
-            const xDifference = (grid.hitDetectionX - touchMoved.x) / scale;
-            const yDifference = (grid.hitDetectionY - touchMoved.y) / scale;
-            grid.camera.x = cameraStart.x + xDifference;
-            grid.camera.y = cameraStart.y + yDifference;
-        } else {
-            const xDifference = Math.abs(zoomTouch.x1 - zoomTouch.x2);
-            const yDifference = Math.abs(zoomTouch.y1 - zoomTouch.y2);
-
-            const delta = zoomTouch.startDistance - (xDifference + yDifference);
-            grid.camera.z = zoomTouch.cameraZStart + ((delta / inverseZoomFactor) / scale);
-
-            console.log("Zoom delta: " + detla);
-            
-            validateZoomChange();
-            //todo
-        }
-
+        const xDifference = (grid.hitDetectionX - touchMoved.x) / scale;
+        const yDifference = (grid.hitDetectionY - touchMoved.y) / scale;
+        grid.camera.x = cameraStart.x + xDifference;
+        grid.camera.y = cameraStart.y + yDifference;
     }
 
     if(mouseDown) {
@@ -474,6 +499,7 @@ grid.camera.z = canvas.width / 50;
 const zoomInput = document.getElementById("zoomInput");
 zoomInput.min = minZoom;
 zoomInput.max = maxZoom;
+zoomInput.disabled = true;
 
 const validateZoomChange = function() {
     if(grid.camera.z > maxZoom) {
