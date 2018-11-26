@@ -19,7 +19,19 @@ function bline(dx,dy,x0, y0, x1, y1) {
     var sy = y0 < y1 ? 1 : -1; 
     var err = (dx>dy ? dx : -dy)/2;
     while (true) {
-        grid.set(x0,y0,colorIndex);
+        let xMask = x0;
+        let yMask = y0;
+        if(xMask < 0) {
+            xMask += grid.width;
+        } else {
+            xMask = xMask % grid.width;
+        }
+        if(yMask < 0) {
+            yMask += grid.height;
+        } else {
+            yMask = yMask % grid.height;
+        }
+        grid.set(xMask,yMask,colorIndex);
         if (x0 === x1 && y0 === y1) break;
         var e2 = err;
         if (e2 > -dx) { err -= dy; x0 += sx; }
@@ -34,6 +46,30 @@ const gridTapped = (x,y) => {
 
     if(lastDrawPosition != null && mouseDown) {
 
+        const halfWidth = grid.width / 2;
+
+        if(x < grid.width / 2) {
+            //start is in right half, end is in left half - 99,0
+            if(lastDrawPosition.x > halfWidth && Math.abs(x - lastDrawPosition.x) > halfWidth) {
+                lastDrawPosition.x -= grid.width;
+            }
+        } else if(lastDrawPosition.x < halfWidth && Math.abs(x - lastDrawPosition.x) > halfWidth) {
+            //start is in left half, end is in right half - 0,99
+            lastDrawPosition.x += grid.width;
+        }
+
+        const halfHeight = grid.height / 2;
+
+        if(y < grid.width / 2) {
+            if(lastDrawPosition.y > halfHeight && Math.abs(y - lastDrawPosition.y) > halfHeight) {
+                //start is in right half, end is in left half - 99,0
+                lastDrawPosition.y -= grid.height;
+            }
+        } else if(lastDrawPosition.y < halfHeight && Math.abs(y - lastDrawPosition.y) > halfHeight) {
+            //start is in left half, end is in right half - 0,99
+            lastDrawPosition.y += grid.height;
+        }
+
         let xDistance = Math.abs(x - lastDrawPosition.x);
         let yDistance = Math.abs(y - lastDrawPosition.y);
 
@@ -41,24 +77,48 @@ const gridTapped = (x,y) => {
             if(xDistance > 0 && yDistance < 1) {//just x
                 if(x < lastDrawPosition.x) {
                     for(let i = x+1;i<lastDrawPosition.x;i++) {
-                        grid.set(i,y,colorIndex);
+                        let iMask = i;
+                        if(iMask < 0) {
+                            iMask += grid.width;
+                        } else {
+                            iMask = iMask % grid.width;
+                        }
+                        grid.set(iMask,y,colorIndex);
                     }
                 } else {
                     for(let i = lastDrawPosition.x-1;i<x;i++) {
-                        grid.set(i,y,colorIndex);
+                        let iMask = i;
+                        if(iMask < 0) {
+                            iMask += grid.width;
+                        } else {
+                            iMask = iMask % grid.width;
+                        }
+                        grid.set(iMask,y,colorIndex);
                     }
                 }
             } else if(yDistance > 0 && xDistance < 1) {//just y
                 if(y < lastDrawPosition.y) {
                     for(let i = y+1;i<lastDrawPosition.y;i++) {
                         if(i < grid.height && i > -1) {
-                            grid.set(x,i,colorIndex);
+                            let iMask = i;
+                            if(iMask < 0) {
+                                iMask += grid.height;
+                            } else {
+                                iMask = iMask % grid.height;
+                            }
+                            grid.set(x,iMask,colorIndex);
                         }
                     }
                 } else {
                     for(let i = lastDrawPosition.y-1;i<y;i++) {
                         if(i < grid.height && i > -1) {
-                            grid.set(x,i,colorIndex);
+                            let iMask = i;
+                            if(iMask < 0) {
+                                iMask += grid.height;
+                            } else {
+                                iMask = iMask % grid.height;
+                            }
+                            grid.set(x,iMask,colorIndex);
                         }
                     }
                 }
@@ -77,7 +137,6 @@ const gridTapped = (x,y) => {
 }
 
 canvas.addEventListener("mousedown",event => {
-    console.log("mouse down");
     if(!capturingTouch && event.button === 0 && !mouseDown) {
         grid.hitDetectionX = event.clientX;
         grid.hitDetectionY = event.clientY;
@@ -87,7 +146,6 @@ canvas.addEventListener("mousedown",event => {
 });
 
 canvas.addEventListener("mousemove",event => {
-    console.log("mouse move");
     if(!capturingTouch && mouseDown) {
         grid.hitDetectionX = event.clientX;
         grid.hitDetectionY = event.clientY;
@@ -109,7 +167,6 @@ canvas.addEventListener("mouseout",event => {
 });
 canvas.addEventListener("mouseup",event => {
     if(mouseDown && event.button === 0) {
-        console.log("mouse up");
         endMouseDetection();
     }
 });
@@ -466,12 +523,6 @@ rendererState = (context,width,height,timestamp) => {
         }
     }
     grid.camera.z = Number(zoomInput.value);
-
-    //console.log(`X: ${grid.camera.x}, Y: ${grid.camera.y}`);
-    if(mouseDown) {
-        console.log(`last draw X: ${lastDrawPosition.x}, Y: ${lastDrawPosition.y}`);
-        console.log(`X: ${grid.hitDetectionRegister.x}, Y: ${grid.hitDetectionRegister.y}`);
-    }
 }
 
 const gamepads = {};
