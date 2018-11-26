@@ -387,6 +387,8 @@ rendererState = (context,width,height,timestamp) => {
 
             const delta = zoomTouch.startDistance - (xDifference + yDifference);
             grid.camera.z = zoomTouch.cameraZStart + ((delta / inverseZoomFactor) / scale);
+
+            console.log("Zoom delta: " + detla);
             
             validateZoomChange();
             //todo
