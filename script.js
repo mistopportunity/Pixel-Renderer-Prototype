@@ -561,18 +561,18 @@ window.addEventListener("gamepaddisconnected", function(e) {
     );
 });
 
-let colorIndex = 0;
+let colorIndex = 1;
 const colorSet = [
-    "Red","Maroon","Yellow",
+    "black","Red","Maroon","Yellow",
     "Olive","Lime","Green",
     "Aqua","Teal","Blue",
     "Navy","Fuchsia","Purple",
-    "White","Darkgray","Black"
+    "White","Darkgray"
 ];
 
 grid.colorForValue = value => {
-    if(value === undefined) {
-        return "Black";
+    if(!value) {
+        return "black";
     }
     return colorSet[value];
 }
@@ -607,7 +607,7 @@ const palleteShift = delta => {
 
     let centralColor = colorSet[colorIndex];
 
-    if(centralColor === "Black") {
+    if(centralColor === "black") {
         pallete.style.outlineColor = "White";
         pallete.style.backgroundColor = "White";
     } else {

@@ -182,6 +182,12 @@ function centroidGrid(width,height,isLandscape,data) {
 
         const innerDrawLogic = function(rowIndex,columnIndex,color,rowValue,columnValue) {
 
+            if(color === "black") {
+                if((rowIndex + columnIndex) % 2 === 0) {
+                    color = "rgb(10,10,10)";
+                }
+            }
+
             context.fillStyle = color;
 
             const posX = ((columnIndex - dataStartX + xOffset) * scale) + centerXOffset;
