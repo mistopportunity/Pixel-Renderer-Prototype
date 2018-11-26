@@ -246,9 +246,11 @@ function centroidGrid(width,height,isLandscape,data) {
             }
         }
 
-        context.fillStyle = "White";
-
+        context.globalCompositeOperation = "difference";
+        context.fillStyle = "white";
         context.fillRect(width/2-scale/4,height/2-scale/4,scale/2,scale/2);
+
+        context.globalCompositeOperation = "source-over";
 
         this.hitDetectionRegister = hitDetectionRegister === -1 ? null : hitDetectionRegister;
 
@@ -257,9 +259,9 @@ function centroidGrid(width,height,isLandscape,data) {
 
     this.colorForValue = value => {
         if(!value) {
-            return "Black";
+            return "black";
         } else {
-            return "Gray";
+            return "darkgray";
         }
     };
 

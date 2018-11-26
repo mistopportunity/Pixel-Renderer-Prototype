@@ -72,7 +72,7 @@ const gridTapped = (x,y) => {
 
 canvas.addEventListener("mousedown",event => {
     console.log("mouse down");
-    if(!capturingTouch && !mouseDown) {
+    if(!capturingTouch && event.button === 0 && !mouseDown) {
         grid.hitDetectionX = event.clientX;
         grid.hitDetectionY = event.clientY;
         mouseDown = true;
@@ -102,7 +102,7 @@ canvas.addEventListener("mouseout",event => {
     }
 });
 canvas.addEventListener("mouseup",event => {
-    if(mouseDown) {
+    if(mouseDown && event.button === 0) {
         console.log("mouse up");
         endMouseDetection();
     }
@@ -478,7 +478,7 @@ const colorSet = [
     "Olive","Lime","Green",
     "Aqua","Teal","Blue",
     "Navy","Fuchsia","Purple",
-    "White","Gray","Black"
+    "White","Darkgray","Black"
 ];
 
 grid.colorForValue = value => {
