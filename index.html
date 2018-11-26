@@ -2,26 +2,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
+    <title>Notice: EARLY ACCESS CONTENT</title>
+    <link rel="stylesheet" href="stylesheet.css">
 </head>
-<body style="
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    padding: 0;">
-    <canvas id="canvas" style="width: 100%;height: 100%;"></canvas>
+<body>
+    <canvas id="canvas"></canvas>
 
-    <input id="zoomInput" type="range" style="
-        position: absolute;
-        width: 60%;
-        margin-right: auto;
-        display: block;
-        top: 0;
-        left: 20%;
-        margin-left: 0;
-        padding: 0;
-        margin-top: 10px;
-        margin-bottom: 0;">
+    <input id="zoomInput" type="range">
+
+    <div id="pallete">
+        <div class="left" onclick="palleteShift(-1)"></div>
+        <div class="center" onclick="palleteShift(0)"></div>
+        <div class="right" onclick="palleteShift(1)"></div>
+    </div>
 
     <script src="camera.js"></script>
     <script src="centroid-grid.js"></script>

@@ -19,7 +19,7 @@ function bline(dx,dy,x0, y0, x1, y1) {
     var sy = y0 < y1 ? 1 : -1; 
     var err = (dx>dy ? dx : -dy)/2;
     while (true) {
-        grid.set(x0,y0,1);
+        grid.set(x0,y0,colorIndex);
         if (x0 === x1 && y0 === y1) break;
         var e2 = err;
         if (e2 > -dx) { err -= dy; x0 += sx; }
@@ -39,21 +39,21 @@ const gridTapped = (x,y) => {
             if(xDistance > 0 && yDistance < 1) {//just x
                 if(x < lastDrawPosition.x) {
                     for(let i = x+1;i<lastDrawPosition.x;i++) {
-                        grid.set(i,y,1);
+                        grid.set(i,y,colorIndex);
                     }
                 } else {
                     for(let i = lastDrawPosition.x-1;i<x;i++) {
-                        grid.set(i,y,1);
+                        grid.set(i,y,colorIndex);
                     }
                 }
             } else if(yDistance > 0 && xDistance < 1) {//just y
                 if(y < lastDrawPosition.y) {
                     for(let i = y+1;i<lastDrawPosition.y;i++) {
-                        grid.set(x,i,1);
+                        grid.set(x,i,colorIndex);
                     }
                 } else {
                     for(let i = lastDrawPosition.y-1;i<y;i++) {
-                        grid.set(x,i,1);
+                        grid.set(x,i,colorIndex);
                     }
                 }
             } else {
@@ -62,7 +62,7 @@ const gridTapped = (x,y) => {
         }
     }
 
-    grid.set(x,y,1);
+    grid.set(x,y,colorIndex);
 
     lastDrawPosition = {
         x: x,
@@ -72,11 +72,12 @@ const gridTapped = (x,y) => {
 
 canvas.addEventListener("mousedown",event => {
     console.log("mouse down");
-    if(!capturingTouch) {
+    if(!capturingTouch && !mouseDown) {
         grid.hitDetectionX = event.clientX;
         grid.hitDetectionY = event.clientY;
         mouseDown = true;
     }
+    event.preventDefault(); //This line is fucking magic okay.
 });
 
 canvas.addEventListener("mousemove",event => {
@@ -95,12 +96,16 @@ const endMouseDetection = function() {
     }
 }
 canvas.addEventListener("mouseout",event => {
-    console.log("mouse out");
-    endMouseDetection();
+    if(mouseDown) {
+        console.log("mouse out");
+        endMouseDetection();
+    }
 });
 canvas.addEventListener("mouseup",event => {
-    console.log("mouse up");
-    endMouseDetection();
+    if(mouseDown) {
+        console.log("mouse up");
+        endMouseDetection();
+    }
 });
 
 canvas.addEventListener("wheel",event => {
@@ -248,7 +253,7 @@ canvas.addEventListener("touchend",function(event) {
             if(!touchMoved) {
                 const register = grid.hitDetectionRegister;
                 if(register) {
-                    grid.set(register.x,register.y,1);
+                    grid.set(register.x,register.y,colorIndex);
                 }
             }
             endTouch();
@@ -312,12 +317,18 @@ function applyDeadZone(value) {
     return value;
 }
 
-const buttonStates = {
-    up: false,
-    down: false,
-    left: false,
-    right: false,
-}
+const buttonStates = {}
+
+const processButton = (name,action,button) => {
+    if(button.pressed) {
+        if(!buttonStates[name]) {
+            action();
+            buttonStates[name] = true;
+        }
+    } else {
+        buttonStates[name] = false;
+    }
+};
 
 rendererState = (context,width,height,timestamp) => {
     grid.render(context,width,height,timestamp);
@@ -326,56 +337,40 @@ rendererState = (context,width,height,timestamp) => {
         const gamepad = navigator.getGamepads()[activeGamepadIndex];
 
         if(gamepad !== null && gamepad.connected) {
-            const upPressed = gamepad.buttons[12].pressed;
-            const downPressed = gamepad.buttons[13].pressed;
-            const leftPressed = gamepad.buttons[14].pressed;
-            const rightPressed = gamepad.buttons[15].pressed;
-    
-            const leftTrigger = gamepad.buttons[7];
-    
-            if(leftTrigger.pressed || gamepad.buttons[0].pressed) {
-                grid.set(Math.round(grid.camera.x-1),Math.round(grid.camera.y-1),1);
+
+            const rightTrigger = gamepad.buttons[7];
+            if(rightTrigger.pressed || gamepad.buttons[0].pressed) {
+                grid.set(Math.round(grid.camera.x-1),Math.round(grid.camera.y-1),colorIndex);
             }
+
+            processButton("up",()=>{
+                snapUp();
+                snapHorizontal();
+            },gamepad.buttons[12]);
+
+            processButton("down",()=>{
+                snapDown();
+                snapHorizontal();
+            },gamepad.buttons[13]);
     
-            if(upPressed) {
-                if(!buttonStates.up) {
-                    snapUp();
-                    snapHorizontal();
-                    buttonStates.up = true;
-                }
-            } else {
-                buttonStates.up = false;
-            }
+            processButton("left",()=>{
+                snapLeft();
+                snapVertical();
+            },gamepad.buttons[14]);
     
-            if(downPressed) {
-                if(!buttonStates.down) {
-                    snapDown();
-                    snapHorizontal();
-                    buttonStates.down = true;
-                }
-            } else {
-                buttonStates.down = false;
-            }
-    
-            if(leftPressed) {
-                if(!buttonStates.left) {
-                    snapLeft();
-                    snapVertical();
-                    buttonStates.left = true;
-                }
-            } else {
-                buttonStates.left = false;
-            }
-    
-            if(rightPressed) {
-                if(!buttonStates.right) {
-                    snapRight();
-                    snapVertical();
-                    buttonStates.right = true;
-                }
-            } else {
-                buttonStates.right = false;
-            }
+            processButton("right",()=>{
+                snapRight();
+                snapVertical();
+            },gamepad.buttons[15]);
+
+            processButton("leftBumper",()=>{
+                palleteShift(-1);
+            },gamepad.buttons[4]);
+
+            processButton("rightBumper",()=>{
+                palleteShift(1);
+            },gamepad.buttons[5]);
+
     
             let leftXAxis = applyDeadZone(gamepad.axes[0]);
             let leftYAxis = applyDeadZone(gamepad.axes[1]);
@@ -395,12 +390,6 @@ rendererState = (context,width,height,timestamp) => {
             grid.camera.z += (rightYAxis * 2) * (grid.camera.z / inverseZoomFactor);
     
             validateZoomChange();
-
-            context.font = "30px Arial";
-            context.fillText("lx " + leftXAxis,15,40);
-            context.fillText("ly " + leftYAxis,15,80);
-            //context.fillText(rightXAxis,15,120);
-            context.fillText(leftTrigger.pressed,15,120);
         }
     }
 
@@ -483,6 +472,61 @@ window.addEventListener("gamepaddisconnected", function(e) {
     );
 });
 
+let colorIndex = 0;
+const colorSet = [
+    "Red","Maroon","Yellow",
+    "Olive","Lime","Green",
+    "Aqua","Teal","Blue",
+    "Navy","Fuchsia","Purple",
+    "White","Gray","Black"
+];
+
+grid.colorForValue = value => {
+    if(value === undefined) {
+        return "Black";
+    }
+    return colorSet[value];
+}
+
+const pallete = document.getElementById("pallete");
+
+const palleteShift = delta => {
+    colorIndex += delta;
+    if(colorIndex > colorSet.length-1) {
+        colorIndex = 0;
+    } else if(colorIndex < 0) {
+        colorIndex = colorSet.length - 1;
+    }
+
+    const left = pallete.children[0];
+    const center = pallete.children[1];
+    const right = pallete.children[2];
+
+    let leftIndex = colorIndex - 1;
+    if(leftIndex < 0) {
+        leftIndex = colorSet.length-1;
+    }
+
+    let rightIndex = colorIndex + 1;
+    if(rightIndex > colorSet.length-1) {
+        rightIndex = 0;
+    }
+
+    left.style.backgroundColor = colorSet[leftIndex];
+    center.style.backgroundColor = colorSet[colorIndex];
+    right.style.backgroundColor = colorSet[rightIndex];
+
+    let centralColor = colorSet[colorIndex];
+
+    if(centralColor === "Black") {
+        pallete.style.outlineColor = "White";
+        pallete.style.backgroundColor = "White";
+    } else {
+        pallete.style.outlineColor = centralColor;
+        pallete.style.backgroundColor = "Black";
+    }
+
+};
 
 let hasFocus = document.hasFocus();
 window.addEventListener("blur",()=>hasFocus=false);
@@ -512,5 +556,7 @@ const validateZoomChange = function() {
 }
 
 validateZoomChange();
+
+palleteShift(0);
 
 startRenderer();
