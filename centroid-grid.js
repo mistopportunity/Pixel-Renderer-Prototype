@@ -35,35 +35,41 @@ function centroidGrid(width,height,isLandscape,data) {
 
     this.forceLandscape = () => {
 
-        const newGrid = createGrid(this.width,this.height);
-
-        for(let x = 0;x<this.width;x++) {
-            for(let y = 0;y<this.height;y++) {
-                newGrid[x][y] = this.data[y][x];
+        if(!this.renderingInLandscape) {
+            const newGrid = createGrid(this.width,this.height);
+            for(let x = 0;x<this.width;x++) {
+                for(let y = 0;y<this.height;y++) {
+                    newGrid[x][y] = this.data[y][x];
+                }
             }
+
+            this.renderingInLandscape = true;
+            this.data = newGrid;
+    
+            console.log("Refolded data into landscape mode");
+        } else {
+            console.warn("Data is already in landscape mode!");
         }
 
-        this.renderingInLandscape = true;
-        this.data = newGrid;
 
-
-        console.log("Refolded data into landscape mode");
     };
     this.forcePortrait = () => {
 
-        const newGrid = createGrid(this.height,this.width);
-
-        for(let x = 0;x<this.width;x++) {
-            for(let y = 0;y<this.height;y++) {
-                newGrid[y][x] = this.data[x][y];
+        if(this.renderingInLandscape) {
+            const newGrid = createGrid(this.height,this.width);
+            for(let x = 0;x<this.width;x++) {
+                for(let y = 0;y<this.height;y++) {
+                    newGrid[y][x] = this.data[x][y];
+                }
             }
+
+            this.renderingInLandscape = false;
+            this.data = newGrid;
+
+            console.log("Refolded data into portrait mode");
+        } else {
+            console.warn("Data is already in portrait mode!");
         }
-
-        this.renderingInLandscape = false;
-        this.data = newGrid;
-
-
-        console.log("Refolded data into portrait mode");
     };
 
     //Call refold with a window resizing method. This method does not resize the canvas.
